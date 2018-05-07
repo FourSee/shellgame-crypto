@@ -1,12 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"crypto"
@@ -197,8 +197,7 @@ func encryptFile() {
 
 func readFile() {
 
-	key := `-----BEGIN PGP MESSAGE-----
-    
+	key := []byte(`-----BEGIN PGP MESSAGE-----
     hF4DQ5i5KRiiyH8SAQdAlDpqAVxqECsBxd5ockTTjHfZVoFyPxFg4czYcAusKEow
     lK3NZN5M3w522NAJ5fZQRY3tV9oT4V/iR4baxglYjtbrrmTPa27ZwyIAj8e9yM1o
     hQIMA7QNnpNS6SkhAQ//Z255xiTwNxfUgGoOD6H1qb+egeexelrzuz8P2ZQa1lLA
@@ -217,16 +216,17 @@ func readFile() {
     4daWj7zKBaU5fNPBPVcOxe6O1HZGNQkAxqlmPTi2MKxLyjSZpCVdtTh/MQK6aJ9P
     bzcG+QP918UThgN0yZx+8TFSueNGtQAcQPAwhUGCzCJcgWDL
     =4J4T
-    -----END PGP MESSAGE-----`
+    -----END PGP MESSAGE-----`)
 
-	r := strings.NewReader(key)
+	r := bytes.NewReader(key)
 
 	block, err := armor.Decode(r)
 	kingpin.FatalIfError(err, "Error reading OpenPGP Armor: %s", err)
 
-	var entityList openpgp.EntityList
+	// var entityList openpgp.EntityList
 
-	md, err := openpgp.ReadMessage(block.Body, entityList, nil, nil)
+	// md, err := openpgp.ReadMessage(block.Body, entityList, nil, nil)
+	md, err := ReadMetadata(block.b, nil)
 	kingpin.FatalIfError(err, "Error reading message")
 	fmt.Println(md.EncryptedToKeyIds)
 }
