@@ -1,9 +1,11 @@
 package main
 
 import (
+	"crypto"
 	_ "crypto/sha256"
 	"fmt"
 	"io"
+	"strings"
 
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/packet"
@@ -16,7 +18,7 @@ var SignatureType = "PGP SIGNATURE"
 // signed message.
 type MessageMetadata struct {
 	IsEncrypted              bool     // true if the message was encrypted.
-	EncryptedToKeyIds        []uint64 // the list of recipient key ids.
+	EncryptedToKeyIds        []string // the list of recipient key ids.
 	IsSymmetricallyEncrypted bool     // true if a passphrase could have decrypted the message.
 	IsSigned                 bool     // true if the message is signed.
 	SignedByKeyID            uint64   // the key id of the signer, if any.
@@ -54,7 +56,8 @@ func ReadMetadata(r io.Reader, config *packet.Config) (md *MessageMetadata, err 
 	packets := packet.NewReader(r)
 	md = new(MessageMetadata)
 	md.IsEncrypted = true
-
+	// var h hash.Hash
+	// var wrappedHash hash.Hash
 	// The message, if encrypted, starts with a number of packets
 	// containing an encrypted decryption key. The decryption key is either
 	// encrypted to a public key, or with a passphrase. This loop
@@ -72,7 +75,7 @@ ParsePackets:
 			symKeys = append(symKeys, p)
 		case *packet.EncryptedKey:
 			// This packet contains the decryption key encrypted to a public key.
-			md.EncryptedToKeyIds = append(md.EncryptedToKeyIds, p.KeyId)
+			md.EncryptedToKeyIds = append(md.EncryptedToKeyIds, strings.ToUpper(fmt.Sprintf("%x", p.KeyId)))
 			switch p.Algo {
 			case packet.PubKeyAlgoRSA, packet.PubKeyAlgoRSAEncryptOnly, packet.PubKeyAlgoElGamal:
 				break
@@ -87,8 +90,14 @@ ParsePackets:
 			// } else {
 			// 	keys = keyring.KeysById(p.KeyId)
 			// }
+			md.IsSigned = true
+			md.SignedByKeyID = p.KeyId
 		case *packet.SymmetricallyEncrypted:
 			// se = p
+			// buf := new(bytes.Buffer)
+			// buf.ReadFrom(p.contents)
+			// s := buf.String()
+			// fmt.Println(s)
 			break ParsePackets
 		default:
 			fmt.Println(p)
@@ -103,4 +112,62 @@ ParsePackets:
 	}
 
 	return md, nil
+}
+
+func createEntityFromKeys(pubKey *packet.PublicKey, privKey *packet.PrivateKey) *openpgp.Entity {
+	config := packet.Config{
+		DefaultHash:            crypto.SHA256,
+		DefaultCipher:          packet.CipherAES256,
+		DefaultCompressionAlgo: packet.CompressionZLIB,
+		CompressionConfig: &packet.CompressionConfig{
+			Level: 9,
+		},
+		RSABits: *bits,
+	}
+	currentTime := config.Now()
+	uid := packet.NewUserId("", "", "")
+
+	e := openpgp.Entity{
+		PrimaryKey: pubKey,
+		PrivateKey: privKey,
+		Identities: make(map[string]*openpgp.Identity),
+	}
+	isPrimaryId := false
+
+	e.Identities[uid.Id] = &openpgp.Identity{
+		Name:   uid.Name,
+		UserId: uid,
+		SelfSignature: &packet.Signature{
+			CreationTime: currentTime,
+			SigType:      packet.SigTypePositiveCert,
+			PubKeyAlgo:   packet.PubKeyAlgoRSA,
+			Hash:         config.Hash(),
+			IsPrimaryId:  &isPrimaryId,
+			FlagsValid:   true,
+			FlagSign:     true,
+			FlagCertify:  true,
+			IssuerKeyId:  &e.PrimaryKey.KeyId,
+		},
+	}
+
+	keyLifetimeSecs := uint32(86400 * 365)
+
+	e.Subkeys = make([]openpgp.Subkey, 1)
+	e.Subkeys[0] = openpgp.Subkey{
+		PublicKey:  pubKey,
+		PrivateKey: privKey,
+		Sig: &packet.Signature{
+			CreationTime:              currentTime,
+			SigType:                   packet.SigTypeSubkeyBinding,
+			PubKeyAlgo:                packet.PubKeyAlgoRSA,
+			Hash:                      config.Hash(),
+			PreferredHash:             []uint8{8}, // SHA-256
+			FlagsValid:                true,
+			FlagEncryptStorage:        true,
+			FlagEncryptCommunications: true,
+			IssuerKeyId:               &e.PrimaryKey.KeyId,
+			KeyLifetimeSecs:           &keyLifetimeSecs,
+		},
+	}
+	return &e
 }

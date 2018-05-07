@@ -2,8 +2,9 @@ package main
 
 import (
 	"errors"
-	"io"
+	"fmt"
 	"os"
+	"strings"
 
 	_ "crypto/sha256"
 
@@ -45,7 +46,7 @@ var (
 )
 
 func main() {
-	readFile()
+	readFile("./test_message.pgp")
 	// switch kingpin.MustParse(app.Parse(os.Args[1:])) {
 
 	// // generate keys
@@ -67,6 +68,12 @@ func main() {
 	// 	readFile()
 	// 	// kingpin.FatalUsage("Unknown command")
 	// }
+}
+
+type KeyIDs struct {
+	PrimaryKeyID string
+	SubKeyIDs    []string
+	UserID       packet.UserId
 }
 
 func decodeSignature(filename string) *packet.Signature {
@@ -94,19 +101,7 @@ func decodeSignature(filename string) *packet.Signature {
 	return sig
 }
 
-func verifyFile() {
-	pubKey := decodePublicKey(*publicKey)
-	sig := decodeSignature(*signatureFile)
-
-	hash := sig.Hash.New()
-	io.Copy(hash, os.Stdin)
-
-	err := pubKey.VerifySignature(hash, sig)
-	kingpin.FatalIfError(err, "Error signing input")
-	kingpin.Errorf("Verified signature")
-}
-
-func decodePublicKey(filename string) *packet.PublicKey {
+func decodePublicKey(filename string) (key KeyIDs) {
 
 	// open ascii armored public key
 	in, err := os.Open(filename)
@@ -119,23 +114,40 @@ func decodePublicKey(filename string) *packet.PublicKey {
 	if block.Type != openpgp.PublicKeyType {
 		kingpin.FatalIfError(errors.New("Invalid private key file"), "Error decoding private key")
 	}
-
 	reader := packet.NewReader(block.Body)
-	pkt, err := reader.Next()
-	kingpin.FatalIfError(err, "Error reading private key")
 
-	key, ok := pkt.(*packet.PublicKey)
-	if !ok {
-		kingpin.FatalIfError(errors.New("Invalid public key"), "Error parsing public key")
+	// key, ok := pkt.(*packet.PublicKey)
+	// hKey := strings.ToUpper(fmt.Sprintf("%x", key.KeyId))
+	// fmt.Println(hKey)
+ParsePackets:
+	for {
+		pkt, err := reader.Next()
+		if err != nil {
+			break ParsePackets
+		}
+		switch p := pkt.(type) {
+		case *packet.PublicKey:
+			hexKey := strings.ToUpper(fmt.Sprintf("%x", p.KeyId))
+			if p.IsSubkey {
+				key.SubKeyIDs = append(key.SubKeyIDs, hexKey)
+			} else {
+				key.PrimaryKeyID = hexKey
+			}
+		case *packet.UserId:
+			key.UserID = *p
+		default:
+			continue
+		}
+
 	}
 	return key
 }
 
-func readFile() (md *MessageMetadata, err error) {
+func readFile(filename string) (md *MessageMetadata, err error) {
 
 	// key :=
 	// r := bytes.NewReader(key)
-	r, err := os.Open("/home/administrator/gits/shell_game_api/spec/factories/files/signed_message.pgp")
+	r, err := os.Open(filename)
 	block, err := armor.Decode(r)
 	// kingpin.FatalIfError(err, "Error reading OpenPGP Armor: %s", err)
 	// var entityList openpgp.EntityList
