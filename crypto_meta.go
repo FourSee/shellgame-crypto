@@ -50,8 +50,6 @@ func ReadMetadata(r io.Reader, config *packet.Config) (md *MessageMetadata, err 
 	var p packet.Packet
 
 	var symKeys []*packet.SymmetricKeyEncrypted
-	var pubKeys []keyEnvelopePair
-	// var se *packet.SymmetricallyEncrypted
 
 	packets := packet.NewReader(r)
 	md = new(MessageMetadata)
@@ -81,16 +79,14 @@ ParsePackets:
 			default:
 				continue
 			}
-			var keys []openpgp.Key
-			fmt.Println(p.KeyId)
+			// var keys []openpgp.Key
+			// h := strings.ToUpper(fmt.Sprintf("%x", p.KeyId))
+			// fmt.Println(h)
 			// if p.KeyId == 0 {
 			// 	keys = keyring.DecryptionKeys()
 			// } else {
 			// 	keys = keyring.KeysById(p.KeyId)
 			// }
-			for _, k := range keys {
-				pubKeys = append(pubKeys, keyEnvelopePair{k, p})
-			}
 		case *packet.SymmetricallyEncrypted:
 			// se = p
 			break ParsePackets
@@ -106,5 +102,5 @@ ParsePackets:
 		}
 	}
 
-	return new(MessageMetadata), nil
+	return md, nil
 }
