@@ -1,13 +1,14 @@
 package main
 
 import (
-	"crypto"
 	_ "crypto/sha256"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
 
 	"golang.org/x/crypto/openpgp"
+	"golang.org/x/crypto/openpgp/armor"
 	"golang.org/x/crypto/openpgp/packet"
 )
 
@@ -114,60 +115,42 @@ ParsePackets:
 	return md, nil
 }
 
-func createEntityFromKeys(pubKey *packet.PublicKey, privKey *packet.PrivateKey) *openpgp.Entity {
-	config := packet.Config{
-		DefaultHash:            crypto.SHA256,
-		DefaultCipher:          packet.CipherAES256,
-		DefaultCompressionAlgo: packet.CompressionZLIB,
-		CompressionConfig: &packet.CompressionConfig{
-			Level: 9,
-		},
-		RSABits: *bits,
-	}
-	currentTime := config.Now()
-	uid := packet.NewUserId("", "", "")
+// DecodePublicKey returns metadata about a public key
+func DecodePublicKey(r io.Reader) (key *KeyIDs, err error) {
 
-	e := openpgp.Entity{
-		PrimaryKey: pubKey,
-		PrivateKey: privKey,
-		Identities: make(map[string]*openpgp.Identity),
-	}
-	isPrimaryId := false
-
-	e.Identities[uid.Id] = &openpgp.Identity{
-		Name:   uid.Name,
-		UserId: uid,
-		SelfSignature: &packet.Signature{
-			CreationTime: currentTime,
-			SigType:      packet.SigTypePositiveCert,
-			PubKeyAlgo:   packet.PubKeyAlgoRSA,
-			Hash:         config.Hash(),
-			IsPrimaryId:  &isPrimaryId,
-			FlagsValid:   true,
-			FlagSign:     true,
-			FlagCertify:  true,
-			IssuerKeyId:  &e.PrimaryKey.KeyId,
-		},
+	block, err := armor.Decode(r)
+	if err != nil {
+		return nil, err
 	}
 
-	keyLifetimeSecs := uint32(86400 * 365)
-
-	e.Subkeys = make([]openpgp.Subkey, 1)
-	e.Subkeys[0] = openpgp.Subkey{
-		PublicKey:  pubKey,
-		PrivateKey: privKey,
-		Sig: &packet.Signature{
-			CreationTime:              currentTime,
-			SigType:                   packet.SigTypeSubkeyBinding,
-			PubKeyAlgo:                packet.PubKeyAlgoRSA,
-			Hash:                      config.Hash(),
-			PreferredHash:             []uint8{8}, // SHA-256
-			FlagsValid:                true,
-			FlagEncryptStorage:        true,
-			FlagEncryptCommunications: true,
-			IssuerKeyId:               &e.PrimaryKey.KeyId,
-			KeyLifetimeSecs:           &keyLifetimeSecs,
-		},
+	if block.Type != openpgp.PublicKeyType {
+		return nil, errors.New("Invalid private key file")
 	}
-	return &e
+	reader := packet.NewReader(block.Body)
+
+	// key, ok := pkt.(*packet.PublicKey)
+	// hKey := strings.ToUpper(fmt.Sprintf("%x", key.KeyId))
+	// fmt.Println(hKey)
+ParsePackets:
+	for {
+		pkt, err := reader.Next()
+		if err != nil {
+			break ParsePackets
+		}
+		switch p := pkt.(type) {
+		case *packet.PublicKey:
+			hexKey := strings.ToUpper(fmt.Sprintf("%x", p.KeyId))
+			if p.IsSubkey {
+				key.SubKeyIDs = append(key.SubKeyIDs, hexKey)
+			} else {
+				key.PrimaryKeyID = hexKey
+			}
+		case *packet.UserId:
+			key.UserID = *p
+		default:
+			continue
+		}
+
+	}
+	return key, nil
 }

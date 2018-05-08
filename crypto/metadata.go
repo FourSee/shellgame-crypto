@@ -15,7 +15,7 @@ type MessageMetadata struct {
 	EncryptedToKeyIds        []string // the list of recipient key ids.
 	IsSymmetricallyEncrypted bool     // true if a passphrase could have decrypted the message.
 	IsSigned                 bool     // true if the message is signed.
-	SignedByKeyID            uint64   // the key id of the signer, if any.
+	SignedByKeyID            string   // the key id of the signer, if any.
 	// If IsSigned is true and SignedBy is non-zero then the signature will
 	// be verified as UnverifiedBody is read. The signature cannot be
 	// checked until the whole of UnverifiedBody is read so UnverifiedBody
@@ -31,9 +31,16 @@ type MessageMetadata struct {
 
 }
 
-// ReadMetadata parses an OpenPGP message that may be signed and/or encrypted.
+// KeyIDs is the public key metadata container
+type KeyIDs struct {
+	PrimaryKeyID string
+	SubKeyIDs    []string
+	UserID       packet.UserId
+}
+
+// ReadRecipients parses an OpenPGP message that may be signed and/or encrypted.
 // An encrypted & signed message cannot be signature-validated without the decryption key
-func ReadMetadata(r io.Reader, config *packet.Config) (md *MessageMetadata, err error) {
+func ReadRecipients(r io.Reader) (md *MessageMetadata, err error) {
 	var p packet.Packet
 
 	var symKeys []*packet.SymmetricKeyEncrypted
@@ -43,10 +50,11 @@ func ReadMetadata(r io.Reader, config *packet.Config) (md *MessageMetadata, err 
 	md.IsEncrypted = true
 ParsePackets:
 	for {
-		p, err = packets.Next()
+		p, _ = packets.Next()
 		if err != nil {
 			return md, err
 		}
+		fmt.Printf("%v", p)
 		switch p := p.(type) {
 		case *packet.SymmetricKeyEncrypted:
 			// This packet contains the decryption key encrypted with a passphrase.
@@ -55,14 +63,43 @@ ParsePackets:
 		case *packet.EncryptedKey:
 			// This packet contains the decryption key encrypted to a public key.
 			md.EncryptedToKeyIds = append(md.EncryptedToKeyIds, strings.ToUpper(fmt.Sprintf("%x", p.KeyId)))
-			if p.KeyId != 0 {
-				md.IsSigned = true
-				md.SignedByKeyID = p.KeyId
-			}
 		// This *should* be the final packet in a stream
 		case *packet.SymmetricallyEncrypted:
 			break ParsePackets
 		}
 	}
 	return md, nil
+}
+
+// DecodePublicKey returns metadata about a public key
+func DecodePublicKey(r io.Reader) (key *KeyIDs, err error) {
+
+	reader := packet.NewReader(r)
+	key = new(KeyIDs)
+
+	// key, ok := pkt.(*packet.PublicKey)
+	// hKey := strings.ToUpper(fmt.Sprintf("%x", key.KeyId))
+	// fmt.Println(hKey)
+ParsePackets:
+	for {
+		pkt, err := reader.Next()
+		if err != nil {
+			break ParsePackets
+		}
+		switch p := pkt.(type) {
+		case *packet.PublicKey:
+			hexKey := strings.ToUpper(fmt.Sprintf("%x", p.KeyId))
+			if p.IsSubkey {
+				key.SubKeyIDs = append(key.SubKeyIDs, hexKey)
+			} else {
+				key.PrimaryKeyID = hexKey
+			}
+		case *packet.UserId:
+			key.UserID = *p
+		default:
+			continue
+		}
+
+	}
+	return key, nil
 }

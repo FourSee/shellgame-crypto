@@ -70,12 +70,6 @@ func main() {
 	// }
 }
 
-type KeyIDs struct {
-	PrimaryKeyID string
-	SubKeyIDs    []string
-	UserID       packet.UserId
-}
-
 func decodeSignature(filename string) *packet.Signature {
 
 	// open ascii armored public key

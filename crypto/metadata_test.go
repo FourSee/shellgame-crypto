@@ -16,16 +16,16 @@ func Benchmark_ReadMetadata(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		r := bytes.NewReader(fileContents)
 		block, _ := armor.Decode(r)
-		ReadMetadata(block.Body, nil)
+		ReadRecipients(block.Body)
 	}
 }
 
-func Test_ReadMetadata(t *testing.T) {
+func Test_ReadRecipients(t *testing.T) {
 	r, _ := os.Open("./test_message.pgp")
 	block, _ := armor.Decode(r)
 	defer r.Close()
 
-	md, err := ReadMetadata(block.Body, nil)
+	md, err := ReadRecipients(block.Body)
 
 	if err != nil {
 		t.Errorf("Error decoding message: %v", err)
@@ -35,12 +35,40 @@ func Test_ReadMetadata(t *testing.T) {
 		t.Error("Should be encrypted, but wasn't")
 	}
 
-	if md.IsSigned != true {
-		t.Error("Should be signed, but wasn't")
-	}
-
-	expectedKeys := []string{"B40D9E9352E92921", "6C73657F7E2E3E9C"}
+	expectedKeys := []string{"4398B92918A2C87F", "B40D9E9352E92921"}
 	if !reflect.DeepEqual(md.EncryptedToKeyIds, expectedKeys) {
 		t.Errorf("Expected recipient IDs: %v, got: %v", expectedKeys, md.EncryptedToKeyIds)
+	}
+}
+
+func Benchmark_DecodePublicKey(b *testing.B) {
+	fileContents, _ := ioutil.ReadFile("./test_key.asc")
+
+	for n := 0; n < b.N; n++ {
+		r := bytes.NewReader(fileContents)
+		block, _ := armor.Decode(r)
+		DecodePublicKey(block.Body)
+	}
+}
+
+func Test_DecodePublicKey(t *testing.T) {
+	r, _ := os.Open("./test_key.asc")
+	defer r.Close()
+	block, _ := armor.Decode(r)
+
+	md, err := DecodePublicKey(block.Body)
+
+	if err != nil {
+		t.Errorf("Error decoding message: %v", err)
+	}
+
+	expectedPrimaryKeyID := "5E17A2717F2028B4"
+	if md.PrimaryKeyID != expectedPrimaryKeyID {
+		t.Errorf("Was expecting User ID %v, got %v", expectedPrimaryKeyID, md.PrimaryKeyID)
+	}
+
+	expectedKeys := []string{"6C73657F7E2E3E9C"}
+	if !reflect.DeepEqual(md.SubKeyIDs, expectedKeys) {
+		t.Errorf("Expected Subkey IDs: %v, got: %v", expectedKeys, md.SubKeyIDs)
 	}
 }
