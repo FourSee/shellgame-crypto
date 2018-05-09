@@ -1,5 +1,5 @@
-SRC=*.go cmd/terminal-to-html/*.go
-BINARY=terminal-to-html
+SRC=*.go cmd/shellgame-crypto/*.go
+BINARY=shellgame-crypto
 BUILDCMD=go build -o $@ cmd/shellgame-crypto/*
 
 VERSION=$(shell cat version.go  | grep baseVersion | head -n1 | cut -d \" -f 2)

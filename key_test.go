@@ -2,7 +2,6 @@ package shellgameCrypto
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -61,8 +60,6 @@ func Test_GenerateKey(t *testing.T) {
 	if metadata.PrimaryKeyID == "" {
 		t.Errorf("Parsed key info is blank")
 	}
-
-	fmt.Printf("Decoded key info: %v", metadata)
 }
 
 func Benchmark_Generate2048BitKey(b *testing.B) {
