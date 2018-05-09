@@ -69,36 +69,3 @@ ParsePackets:
 	}
 	return md, nil
 }
-
-// DecodePublicKey returns metadata about a public key
-func DecodePublicKey(r io.Reader) (key *KeyIDs, err error) {
-
-	reader := packet.NewReader(r)
-	key = new(KeyIDs)
-
-	// key, ok := pkt.(*packet.PublicKey)
-	// hKey := strings.ToUpper(fmt.Sprintf("%x", key.KeyId))
-	// fmt.Println(hKey)
-ParsePackets:
-	for {
-		pkt, err := reader.Next()
-		if err != nil {
-			break ParsePackets
-		}
-		switch p := pkt.(type) {
-		case *packet.PublicKey:
-			hexKey := strings.ToUpper(fmt.Sprintf("%x", p.KeyId))
-			if p.IsSubkey {
-				key.SubKeyIDs = append(key.SubKeyIDs, hexKey)
-			} else {
-				key.PrimaryKeyID = hexKey
-			}
-		case *packet.UserId:
-			key.UserID = *p
-		default:
-			continue
-		}
-
-	}
-	return key, nil
-}

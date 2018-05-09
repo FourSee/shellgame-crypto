@@ -2,7 +2,6 @@ package shell_crypto
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -39,78 +38,5 @@ func Test_ReadRecipients(t *testing.T) {
 	expectedKeys := []string{"4398B92918A2C87F", "B40D9E9352E92921"}
 	if !reflect.DeepEqual(md.EncryptedToKeyIds, expectedKeys) {
 		t.Errorf("Expected recipient IDs: %v, got: %v", expectedKeys, md.EncryptedToKeyIds)
-	}
-}
-
-func Benchmark_DecodePublicKey(b *testing.B) {
-	fileContents, _ := ioutil.ReadFile("./test_key.asc")
-
-	for n := 0; n < b.N; n++ {
-		r := bytes.NewReader(fileContents)
-		block, _ := armor.Decode(r)
-		DecodePublicKey(block.Body)
-	}
-}
-
-func Test_DecodePublicKey(t *testing.T) {
-	r, _ := os.Open("./test_key.asc")
-	defer r.Close()
-	block, _ := armor.Decode(r)
-
-	md, err := DecodePublicKey(block.Body)
-
-	if err != nil {
-		t.Errorf("Error decoding message: %v", err)
-	}
-
-	expectedPrimaryKeyID := "5E17A2717F2028B4"
-	if md.PrimaryKeyID != expectedPrimaryKeyID {
-		t.Errorf("Was expecting User ID %v, got %v", expectedPrimaryKeyID, md.PrimaryKeyID)
-	}
-
-	expectedKeys := []string{"6C73657F7E2E3E9C"}
-	if !reflect.DeepEqual(md.SubKeyIDs, expectedKeys) {
-		t.Errorf("Expected Subkey IDs: %v, got: %v", expectedKeys, md.SubKeyIDs)
-	}
-}
-
-func Test_GenerateKey(t *testing.T) {
-	_, pubKey, err := GenerateRSAKeyPair(4096)
-
-	if err != nil {
-		t.Errorf("Expected nil error generating a 2048-bit RSA key, got: %v", err)
-	}
-
-	r := bytes.NewReader(pubKey)
-	block, _ := armor.Decode(r)
-
-	metadata, err := DecodePublicKey(block.Body)
-	if err != nil {
-		t.Errorf("Expected nil error reading generated key, got: %v", err)
-	}
-
-	if metadata.PrimaryKeyID == "" {
-		t.Errorf("Parsed key info is blank")
-	}
-
-	fmt.Printf("Decoded key info: %v", metadata)
-}
-
-func Benchmark_Generate2048BitKey(b *testing.B) {
-	for n := 0; n < b.N; n++ {
-		_, _, err := GenerateRSAKeyPair(2048)
-		if err != nil {
-			b.Errorf("Expected nil error generating a 2048-bit RSA key, got: %v", err)
-		}
-	}
-}
-
-// A 4096-bit RSA key takes ~15x longer to generate than a 2048-bit
-func Benchmark_Generate4096BitKey(b *testing.B) {
-	for n := 0; n < b.N; n++ {
-		_, _, err := GenerateRSAKeyPair(4096)
-		if err != nil {
-			b.Errorf("Expected nil error generating a 4096-bit RSA key, got: %v", err)
-		}
 	}
 }

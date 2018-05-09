@@ -2,13 +2,13 @@ package main
 
 import (
 	_ "crypto/sha256"
+	"fmt"
 	"os"
+	"shell_game_crypto_service/shell_crypto"
 
 	_ "golang.org/x/crypto/ripemd160"
 
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
-
-	"shell_crypto"
 )
 
 var (
@@ -32,5 +32,15 @@ func main() {
 }
 
 func generateKeys() {
-	shell_crypto.GenerateRSAKeyPair(2048)
+	privKey, pubKey, err := shell_crypto.GenerateRSAKeyPair(2048)
+
+	if err != nil {
+		fmt.Printf("Error generating keys: %v", err)
+		return
+	}
+
+	fmt.Println("Private key:")
+	fmt.Printf("%v\r\n", string(privKey[:]))
+	fmt.Println("Public key:")
+	fmt.Printf("%v\r\n", string(pubKey[:]))
 }
