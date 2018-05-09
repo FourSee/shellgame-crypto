@@ -1,7 +1,8 @@
-package crypto
+package shell_crypto
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -70,5 +71,46 @@ func Test_DecodePublicKey(t *testing.T) {
 	expectedKeys := []string{"6C73657F7E2E3E9C"}
 	if !reflect.DeepEqual(md.SubKeyIDs, expectedKeys) {
 		t.Errorf("Expected Subkey IDs: %v, got: %v", expectedKeys, md.SubKeyIDs)
+	}
+}
+
+func Test_GenerateKey(t *testing.T) {
+	_, pubKey, err := GenerateRSAKeyPair(4096)
+
+	if err != nil {
+		t.Errorf("Expected nil error generating a 2048-bit RSA key, got: %v", err)
+	}
+
+	r := bytes.NewReader(pubKey)
+	block, _ := armor.Decode(r)
+
+	metadata, err := DecodePublicKey(block.Body)
+	if err != nil {
+		t.Errorf("Expected nil error reading generated key, got: %v", err)
+	}
+
+	if metadata.PrimaryKeyID == "" {
+		t.Errorf("Parsed key info is blank")
+	}
+
+	fmt.Printf("Decoded key info: %v", metadata)
+}
+
+func Benchmark_Generate2048BitKey(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		_, _, err := GenerateRSAKeyPair(2048)
+		if err != nil {
+			b.Errorf("Expected nil error generating a 2048-bit RSA key, got: %v", err)
+		}
+	}
+}
+
+// A 4096-bit RSA key takes ~15x longer to generate than a 2048-bit
+func Benchmark_Generate4096BitKey(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		_, _, err := GenerateRSAKeyPair(4096)
+		if err != nil {
+			b.Errorf("Expected nil error generating a 4096-bit RSA key, got: %v", err)
+		}
 	}
 }

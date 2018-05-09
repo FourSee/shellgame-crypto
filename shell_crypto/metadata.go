@@ -1,4 +1,4 @@
-package crypto
+package shell_crypto
 
 import (
 	"fmt"
@@ -54,7 +54,6 @@ ParsePackets:
 		if err != nil {
 			return md, err
 		}
-		fmt.Printf("%v", p)
 		switch p := p.(type) {
 		case *packet.SymmetricKeyEncrypted:
 			// This packet contains the decryption key encrypted with a passphrase.
