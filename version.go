@@ -1,4 +1,4 @@
-package shellgameCrypto
+package shellgamecrypto
 
 var baseVersion string = "3.1.0"
 

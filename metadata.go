@@ -1,4 +1,4 @@
-package shellgameCrypto
+package shellgamecrypto
 
 import (
 	"fmt"

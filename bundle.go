@@ -1,1 +1,1 @@
-package shellgameCrypto
+package shellgamecrypto
