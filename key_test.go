@@ -1,4 +1,4 @@
-package shellgame-crypto
+package shellgameCrypto
 
 import (
 	"bytes"
