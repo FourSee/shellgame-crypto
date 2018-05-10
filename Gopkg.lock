@@ -18,6 +18,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/alokmenghrajani/gpgeez"
+  packages = ["."]
+  revision = "1a06f1c582f9199d70894e080f6e829aa2082d1d"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/crypto"
   packages = [
     "cast5",
@@ -40,6 +46,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "17980b61cee9b0eaa3262caf5811f8088e4de6f0b57d89e93b36aec735a4d47c"
+  inputs-digest = "bedd5968a77738eac3c14c25150b91721d0b29749ba03a19390c79180fea3d40"
   solver-name = "gps-cdcl"
   solver-version = 1

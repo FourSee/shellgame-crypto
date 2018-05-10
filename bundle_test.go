@@ -30,11 +30,10 @@ func Test_EncryptAndSign(t *testing.T) {
 	testMessage := bytes.NewBuffer([]byte("Hello, world. This is a test message"))
 	// r := bytes.NewReader(testMessage)
 	// data, _, _ := EncryptAndSign(testMessage, []*openpgp.Entity{to}, nil)
-	msg, _, err := EncryptAndSign(testMessage, pubkey, nil)
+	_, _, err = EncryptAndSign(testMessage, pubkey, nil)
 	if err != nil {
 		t.Errorf("Problem with encryption: %v", err)
 	}
-	fmt.Println(msg)
 }
 
 func streamToByte(stream io.Reader) []byte {

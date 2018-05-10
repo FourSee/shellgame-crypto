@@ -1,17 +1,19 @@
 package shellgamecrypto
 
 import (
-	"bytes"
-	"crypto/rand"
 	"crypto/rsa"
 	"fmt"
 	"io"
+	"os"
+	"os/user"
 	"strings"
 	"time"
 
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/armor"
 	"golang.org/x/crypto/openpgp/packet"
+
+	"github.com/alokmenghrajani/gpgeez"
 )
 
 // GenerateECDSAKeyPair takes the bitlength and spits out an armored
@@ -28,24 +30,26 @@ import (
 
 // GenerateRSAKeyPair takes the bitlength and spits out an armored
 // private/public RSA keypair
-func GenerateRSAKeyPair(bits int) (privKey []byte, pubKey []byte, err error) {
-	key, err := rsa.GenerateKey(rand.Reader, bits)
+func GenerateRSAKeyPair(bits int) (privKey string, pubKey string, err error) {
+	config := gpgeez.Config{Expiry: 365 * 24 * time.Hour}
+	config.RSABits = bits
+	user, err := user.Current()
+	hostname, _ := os.Hostname()
+	key, err := gpgeez.CreateKey(user.Username, "test key", fmt.Sprintf("%v@%v", user.Username, hostname), &config)
 	if err != nil {
-		return nil, nil, err
+		return
 	}
-	priv := new(bytes.Buffer)
-	err = encodePrivateKey(priv, key)
+	pubKey, err = key.Armor()
 	if err != nil {
-		return nil, nil, err
-	}
-
-	pub := new(bytes.Buffer)
-	err = encodePublicKey(pub, key)
-	if err != nil {
-		return nil, nil, err
+		return
 	}
 
-	return priv.Bytes(), pub.Bytes(), nil
+	privKey, err = key.ArmorPrivate(&config)
+	if err != nil {
+		return
+	}
+
+	return
 }
 
 // DecodePublicKey returns metadata about a public key

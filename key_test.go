@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/armor"
 )
 
@@ -46,19 +47,12 @@ func Test_GenerateKey(t *testing.T) {
 	_, pubKey, err := GenerateRSAKeyPair(2048)
 
 	if err != nil {
-		t.Errorf("Expected nil error generating a 2048-bit RSA key, got: %v", err)
+		t.Errorf("Error generating a 2048-bit RSA key, got: %v", err)
 	}
 
-	r := bytes.NewReader(pubKey)
-	block, _ := armor.Decode(r)
-
-	metadata, err := DecodePublicKey(block.Body)
+	_, err = openpgp.ReadArmoredKeyRing(bytes.NewBuffer([]byte(pubKey)))
 	if err != nil {
-		t.Errorf("Expected nil error reading generated key, got: %v", err)
-	}
-
-	if metadata.PrimaryKeyID == "" {
-		t.Errorf("Parsed key info is blank")
+		t.Errorf("Problem with pubkey: %v", err)
 	}
 }
 
@@ -71,7 +65,7 @@ func Benchmark_Generate2048BitKey(b *testing.B) {
 	}
 }
 
-// A 4096-bit RSA key takes ~15x longer to generate than a 2048-bit
+// A 4096-bit RSA key takes ~11x longer to generate than a 2048-bit
 func Benchmark_Generate4096BitKey(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		_, _, err := GenerateRSAKeyPair(4096)
