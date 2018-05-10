@@ -2,7 +2,6 @@ package shellgamecrypto
 
 import (
 	"bytes"
-	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
 	"fmt"
@@ -104,61 +103,4 @@ func encodePublicKey(out io.Writer, key *rsa.PrivateKey) (err error) {
 	pgpKey := packet.NewRSAPublicKey(time.Now(), &key.PublicKey)
 	pgpKey.Serialize(w)
 	return nil
-}
-
-func createEntityFromKeys(pubKey *packet.PublicKey, privKey *packet.PrivateKey) *openpgp.Entity {
-	config := packet.Config{
-		DefaultHash:            crypto.SHA256,
-		DefaultCipher:          packet.CipherAES256,
-		DefaultCompressionAlgo: packet.CompressionZLIB,
-		CompressionConfig: &packet.CompressionConfig{
-			Level: 9,
-		},
-		RSABits: 2048,
-	}
-	currentTime := config.Now()
-	uid := packet.NewUserId("", "", "")
-
-	e := openpgp.Entity{
-		PrimaryKey: pubKey,
-		Identities: make(map[string]*openpgp.Identity),
-	}
-	isPrimaryId := false
-
-	e.Identities[uid.Id] = &openpgp.Identity{
-		Name:   uid.Name,
-		UserId: uid,
-		SelfSignature: &packet.Signature{
-			CreationTime: currentTime,
-			SigType:      packet.SigTypePositiveCert,
-			PubKeyAlgo:   packet.PubKeyAlgoRSA,
-			Hash:         config.Hash(),
-			IsPrimaryId:  &isPrimaryId,
-			FlagsValid:   true,
-			FlagSign:     true,
-			FlagCertify:  true,
-			IssuerKeyId:  &e.PrimaryKey.KeyId,
-		},
-	}
-
-	keyLifetimeSecs := uint32(86400 * 365)
-
-	e.Subkeys = make([]openpgp.Subkey, 1)
-	e.Subkeys[0] = openpgp.Subkey{
-		PublicKey:  pubKey,
-		PrivateKey: privKey,
-		Sig: &packet.Signature{
-			CreationTime:              currentTime,
-			SigType:                   packet.SigTypeSubkeyBinding,
-			PubKeyAlgo:                packet.PubKeyAlgoRSA,
-			Hash:                      config.Hash(),
-			PreferredHash:             []uint8{8}, // SHA-256
-			FlagsValid:                true,
-			FlagEncryptStorage:        true,
-			FlagEncryptCommunications: true,
-			IssuerKeyId:               &e.PrimaryKey.KeyId,
-			KeyLifetimeSecs:           &keyLifetimeSecs,
-		},
-	}
-	return &e
 }
