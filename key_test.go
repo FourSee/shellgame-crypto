@@ -44,7 +44,16 @@ func Test_DecodePublicKey(t *testing.T) {
 }
 
 func Test_GenerateKey(t *testing.T) {
-	_, pubKey, err := GenerateRSAKeyPair(2048)
+
+	// In practice, we'll want to use system usernames, hostnames, etc
+	// user, err := user.Current()
+	// hostname, _ := os.Hostname()
+	// user.Username, "test key", fmt.Sprintf("%v@%v", user.Username, hostname)
+
+	name := "Test key user"
+	comment := "Generated programatically as a test"
+	email := "test.user@example.org"
+	privKey, pubKey, err := GenerateRSAKeyPair(2048, name, comment, email)
 
 	if err != nil {
 		t.Errorf("Error generating a 2048-bit RSA key, got: %v", err)
@@ -52,13 +61,22 @@ func Test_GenerateKey(t *testing.T) {
 
 	_, err = openpgp.ReadArmoredKeyRing(bytes.NewBuffer([]byte(pubKey)))
 	if err != nil {
-		t.Errorf("Problem with pubkey: %v", err)
+		t.Errorf("Problem with public key: %v", err)
+	}
+
+	_, err = openpgp.ReadArmoredKeyRing(bytes.NewBuffer([]byte(privKey)))
+	if err != nil {
+		t.Errorf("Problem with private key: %v", err)
 	}
 }
 
 func Benchmark_Generate2048BitKey(b *testing.B) {
+	name := "Test key user"
+	comment := "Generated programatically as a test"
+	email := "test.user@example.org"
+
 	for n := 0; n < b.N; n++ {
-		_, _, err := GenerateRSAKeyPair(2048)
+		_, _, err := GenerateRSAKeyPair(2048, name, comment, email)
 		if err != nil {
 			b.Errorf("Expected nil error generating a 2048-bit RSA key, got: %v", err)
 		}
@@ -67,8 +85,12 @@ func Benchmark_Generate2048BitKey(b *testing.B) {
 
 // A 4096-bit RSA key takes ~11x longer to generate than a 2048-bit
 func Benchmark_Generate4096BitKey(b *testing.B) {
+	name := "Test key user"
+	comment := "Generated programatically as a test"
+	email := "test.user@example.org"
+
 	for n := 0; n < b.N; n++ {
-		_, _, err := GenerateRSAKeyPair(4096)
+		_, _, err := GenerateRSAKeyPair(4096, name, comment, email)
 		if err != nil {
 			b.Errorf("Expected nil error generating a 4096-bit RSA key, got: %v", err)
 		}
