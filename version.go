@@ -1,7 +1,8 @@
 package shellgamecrypto
 
-var baseVersion string = "3.1.0"
+var baseVersion = "0.0.1"
 
+// Version reports the current build version
 func Version() string {
 	return baseVersion
 }

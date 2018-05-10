@@ -4,7 +4,8 @@ import (
 	_ "crypto/sha256"
 	"fmt"
 	"os"
-	"shell_game_crypto_service/shell_crypto"
+
+	crypto "github.com/foursee/shellgameCrypto"
 
 	_ "golang.org/x/crypto/ripemd160"
 
@@ -32,7 +33,7 @@ func main() {
 }
 
 func generateKeys() {
-	privKey, pubKey, err := shell_crypto.GenerateRSAKeyPair(2048)
+	privKey, pubKey, err := crypto.GenerateRSAKeyPair(2048)
 
 	if err != nil {
 		fmt.Printf("Error generating keys: %v", err)
