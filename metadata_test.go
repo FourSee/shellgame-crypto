@@ -2,6 +2,7 @@ package shellgamecrypto
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -35,8 +36,22 @@ func Test_ReadRecipients(t *testing.T) {
 		t.Error("Should be encrypted, but wasn't")
 	}
 
-	expectedKeys := []string{"4398B92918A2C87F", "B40D9E9352E92921"}
+	expectedKeys := []string{"F6B4A2643CD1CF0C"}
 	if !reflect.DeepEqual(md.EncryptedToKeyIds, expectedKeys) {
 		t.Errorf("Expected recipient IDs: %v, got: %v", expectedKeys, md.EncryptedToKeyIds)
 	}
+}
+
+func Test_ReadSigner(t *testing.T) {
+	r, _ := os.Open("./test_message.pgp.sig")
+	block, _ := armor.Decode(r)
+	defer r.Close()
+
+	md, err := ReadSigner(block.Body)
+
+	if err != nil {
+		t.Errorf("Error decoding signature: %v", err)
+	}
+
+	fmt.Println(md)
 }

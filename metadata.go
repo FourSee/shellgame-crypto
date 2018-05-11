@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 
+	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/packet"
 )
 
@@ -38,6 +39,15 @@ type KeyIDs struct {
 	UserID       packet.UserId
 }
 
+// EntityKeyIDs extracts the key IDs from a given entity
+func EntityKeyIDs(entity *openpgp.Entity) (keys KeyIDs, err error) {
+	keys.PrimaryKeyID = strings.ToUpper(fmt.Sprintf("%x", entity.PrimaryKey.KeyId))
+	for _, subkey := range entity.Subkeys {
+		keys.SubKeyIDs = append(keys.SubKeyIDs, strings.ToUpper(fmt.Sprintf("%x", subkey.PublicKey.KeyId)))
+	}
+	return
+}
+
 // ReadRecipients parses an OpenPGP message that may be signed and/or encrypted.
 // An encrypted & signed message cannot be signature-validated without the decryption key
 func ReadRecipients(r io.Reader) (md *MessageMetadata, err error) {
@@ -68,4 +78,26 @@ ParsePackets:
 		}
 	}
 	return md, nil
+}
+
+// ReadSigner returns the long key ID of whoever signed the message
+func ReadSigner(r io.Reader) (keyID string, err error) {
+	var p packet.Packet
+
+	packets := packet.NewReader(r)
+	for {
+		p, _ = packets.Next()
+		if err != nil {
+			return
+		}
+		switch p := p.(type) {
+		case *packet.Signature:
+			keyID = strings.ToUpper(fmt.Sprintf("%x", *p.IssuerKeyId))
+			return keyID, nil
+		default:
+			if p == nil {
+				return
+			}
+		}
+	}
 }

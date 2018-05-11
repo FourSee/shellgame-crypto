@@ -12,7 +12,7 @@ import (
 )
 
 func Benchmark_DecodePublicKey(b *testing.B) {
-	fileContents, _ := ioutil.ReadFile("./test_key.asc")
+	fileContents, _ := ioutil.ReadFile("./test_pub_key.asc")
 
 	for n := 0; n < b.N; n++ {
 		r := bytes.NewReader(fileContents)
@@ -22,7 +22,7 @@ func Benchmark_DecodePublicKey(b *testing.B) {
 }
 
 func Test_DecodePublicKey(t *testing.T) {
-	r, _ := os.Open("./test_key.asc")
+	r, _ := os.Open("./test_pub_key.asc")
 	defer r.Close()
 	block, _ := armor.Decode(r)
 
@@ -32,12 +32,12 @@ func Test_DecodePublicKey(t *testing.T) {
 		t.Errorf("Error decoding message: %v", err)
 	}
 
-	expectedPrimaryKeyID := "5E17A2717F2028B4"
+	expectedPrimaryKeyID := "2604AFED5E51266C"
 	if md.PrimaryKeyID != expectedPrimaryKeyID {
 		t.Errorf("Was expecting User ID %v, got %v", expectedPrimaryKeyID, md.PrimaryKeyID)
 	}
 
-	expectedKeys := []string{"6C73657F7E2E3E9C"}
+	expectedKeys := []string{"F6B4A2643CD1CF0C"}
 	if !reflect.DeepEqual(md.SubKeyIDs, expectedKeys) {
 		t.Errorf("Expected Subkey IDs: %v, got: %v", expectedKeys, md.SubKeyIDs)
 	}
