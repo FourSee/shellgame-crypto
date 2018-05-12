@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/base64"
-	"fmt"
 	"os"
 	"reflect"
 	"strings"
@@ -37,10 +36,6 @@ func Test_EncryptAndSign(t *testing.T) {
 	if err != nil {
 		t.Errorf("Problem with encryption: %v", err)
 	}
-
-	fmt.Printf("Encrypted data: %v\n", data)
-	fmt.Printf("Signature: %v\n", signature)
-	// fmt.Println(signature)
 
 	entity, err := openpgp.CheckDetachedSignature(pubkeys, base64.NewDecoder(base64.StdEncoding, strings.NewReader(data)), base64.NewDecoder(base64.StdEncoding, strings.NewReader(signature)))
 	if err != nil {
