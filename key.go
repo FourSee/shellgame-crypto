@@ -14,7 +14,7 @@ import (
 )
 
 // TODO: actually create GenerateECDSAKeyPair
-// GenerateECDSAKeyPair takes the bitlength and spits out an armored
+// GenerateECDSAKeyPair takes the bitlength and spits out a base64 encoded
 // private/public Elliptic Curve keypair
 // func GenerateECDSAKeyPair() (privKey []byte, pubKey []byte, err error) {
 // 	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
@@ -26,7 +26,7 @@ import (
 
 // }
 
-// GenerateRSAKeyPair takes the bitlength and spits out an armored
+// GenerateRSAKeyPair takes the bitlength and spits out a base64 encoded
 // private/public RSA keypair
 func GenerateRSAKeyPair(bits int, name, comment, email string) (privKey string, pubKey string, err error) {
 	config := gpgeez.Config{Expiry: 3650 * 24 * time.Hour}
@@ -35,13 +35,13 @@ func GenerateRSAKeyPair(bits int, name, comment, email string) (privKey string, 
 	if err != nil {
 		return
 	}
-	pubKey, err = armorPublic(key)
+	pubKey, err = b64Public(key)
 
 	if err != nil {
 		return
 	}
 
-	privKey, err = armorPrivate(key, &config)
+	privKey, err = b64Private(key, &config)
 	if err != nil {
 		return
 	}
@@ -49,7 +49,7 @@ func GenerateRSAKeyPair(bits int, name, comment, email string) (privKey string, 
 	return
 }
 
-func armorPublic(key *gpgeez.Key) (string, error) {
+func b64Public(key *gpgeez.Key) (string, error) {
 	buf := new(bytes.Buffer)
 	encoder := base64.NewEncoder(base64.StdEncoding, buf)
 	key.Serialize(encoder)
@@ -57,7 +57,7 @@ func armorPublic(key *gpgeez.Key) (string, error) {
 	return buf.String(), nil
 }
 
-func armorPrivate(key *gpgeez.Key, config *gpgeez.Config) (string, error) {
+func b64Private(key *gpgeez.Key, config *gpgeez.Config) (string, error) {
 	buf := new(bytes.Buffer)
 	encoder := base64.NewEncoder(base64.StdEncoding, buf)
 	c := config.Config
@@ -98,27 +98,3 @@ ParsePackets:
 	}
 	return key, err
 }
-
-// func encodePrivateKey(out io.Writer, key *rsa.PrivateKey) (err error) {
-// 	w, err := armor.Encode(out, openpgp.PrivateKeyType, make(map[string]string))
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	defer w.Close()
-// 	pgpKey := packet.NewRSAPrivateKey(time.Now(), key)
-// 	pgpKey.Serialize(w)
-// 	return nil
-// }
-
-// func encodePublicKey(out io.Writer, key *rsa.PrivateKey) (err error) {
-// 	w, err := armor.Encode(out, openpgp.PublicKeyType, make(map[string]string))
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	defer w.Close()
-// 	pgpKey := packet.NewRSAPublicKey(time.Now(), &key.PublicKey)
-// 	pgpKey.Serialize(w)
-// 	return nil
-// }

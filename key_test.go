@@ -25,7 +25,6 @@ func Test_DecodePublicKey(t *testing.T) {
 	r, _ := os.Open("./test_pub_key.b64")
 	defer r.Close()
 	decoder := base64.NewDecoder(base64.StdEncoding, r)
-	// block, _ := armor.Decode(r)
 
 	md, err := DecodePublicKey(decoder)
 
