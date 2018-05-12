@@ -2,6 +2,7 @@ package shellgamecrypto
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/base64"
 	"fmt"
 	"os"
@@ -13,8 +14,10 @@ import (
 )
 
 func Test_EncryptAndSign(t *testing.T) {
-	pubkeyIn, err := os.Open("./test_pub_key.b64")
+	pubkeyIn, _ := os.Open("./test_pub_key.b64")
 	privkeyIn, _ := os.Open("./test_priv_key.b64")
+
+	plaintextMessage := "Hello, world. This is a test message"
 
 	pubDecoder := base64.NewDecoder(base64.StdEncoding, pubkeyIn)
 	privDecoder := base64.NewDecoder(base64.StdEncoding, privkeyIn)
@@ -28,19 +31,18 @@ func Test_EncryptAndSign(t *testing.T) {
 		t.Errorf("Problem with privkey: %v", err)
 	}
 
-	testMessage := bytes.NewBuffer([]byte("Hello, world. This is a test message"))
+	testMessage := bytes.NewBuffer([]byte(plaintextMessage))
 
 	data, signature, err := EncryptAndSign(testMessage, pubkeys, privkey[0])
 	if err != nil {
 		t.Errorf("Problem with encryption: %v", err)
 	}
 
-	fmt.Println("Encrypted data:")
-	fmt.Println(data)
-	fmt.Println("Signature:")
-	fmt.Println(signature)
+	fmt.Printf("Encrypted data: %v\n", data)
+	fmt.Printf("Signature: %v\n", signature)
+	// fmt.Println(signature)
 
-	entity, err := openpgp.CheckDetachedSignature(pubkeys, strings.NewReader(data), base64.NewDecoder(base64.StdEncoding, strings.NewReader(signature)))
+	entity, err := openpgp.CheckDetachedSignature(pubkeys, base64.NewDecoder(base64.StdEncoding, strings.NewReader(data)), base64.NewDecoder(base64.StdEncoding, strings.NewReader(signature)))
 	if err != nil {
 		t.Errorf("Check Detached Signature: %v", err)
 	}
@@ -70,4 +72,21 @@ func Test_EncryptAndSign(t *testing.T) {
 		t.Errorf("Signer ID mismatch. Expected: [%v] Got: [%v]", expectedPrimaryKey, signerID)
 	}
 
+	b64 := base64.NewDecoder(base64.StdEncoding, strings.NewReader(data))
+	md, err := openpgp.ReadMessage(b64, privkey, nil, nil)
+	if err != nil {
+		t.Errorf("Error decrypting message: %v", err)
+	}
+
+	gz, err := gzip.NewReader(md.UnverifiedBody)
+	if err != nil {
+		t.Errorf("Error decompressing message: %v", err)
+	}
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(gz)
+	decodedMessage := buf.String()
+
+	if decodedMessage != plaintextMessage {
+		t.Errorf("Error decrypting message. Expected: [%v], Got: [%v]", plaintextMessage, decodedMessage)
+	}
 }

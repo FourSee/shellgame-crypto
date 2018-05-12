@@ -2,9 +2,13 @@ package shellgamecrypto
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/base64"
+	"fmt"
 	"io"
-	"strings"
+	"io/ioutil"
+	"os"
+	"time"
 
 	"golang.org/x/crypto/openpgp"
 )
@@ -14,41 +18,60 @@ import (
 // If it's signed first, THEN encrypted, the signature can't be validated without the decryption key
 // This operation is destructive - the reader is no longer accessible afterwards
 func EncryptAndSign(r io.Reader, recipientPubKeys openpgp.EntityList, signingPrivKey *openpgp.Entity) (data, signature string, err error) {
-	data, err = encrypt(r, recipientPubKeys)
+
+	dataReader, err := encrypt(r, recipientPubKeys)
+	if err != nil {
+		return "", "", err
+	}
+	defer dataReader.Close()
+	dataReader.Seek(0, 0)
+
+	signBytes, err := sign(dataReader, signingPrivKey)
 	if err != nil {
 		return "", "", err
 	}
 
-	signature, err = sign(strings.NewReader(data), signingPrivKey)
-	if err != nil {
-		return "", "", err
-	}
-
-	return data, signature, nil
+	return base64.StdEncoding.EncodeToString(readerByte(dataReader)), base64.StdEncoding.EncodeToString(signBytes), nil
 }
 
-func encrypt(r io.Reader, recipientPubKeys []*openpgp.Entity) (data string, err error) {
-	encBuf := new(bytes.Buffer)
+func readerByte(r io.ReadSeeker) []byte {
+	r.Seek(0, 0)
+	dataBuf := new(bytes.Buffer)
+	dataBuf.ReadFrom(r)
+	return dataBuf.Bytes()
+}
 
-	b64enc := base64.NewEncoder(base64.StdEncoding, encBuf)
-	// bzEnc :=
-	gpgEnc, err := openpgp.Encrypt(b64enc, recipientPubKeys, nil, nil, nil)
+func filePrefix() string {
+	ts := time.Now().Unix()
+	return fmt.Sprintf(".polyrythm-%v", ts)
+}
+
+func encrypt(r io.Reader, recipientPubKeys []*openpgp.Entity) (data *os.File, err error) {
+	encBuf, err := ioutil.TempFile("", filePrefix())
+
+	if err != nil {
+		return nil, err
+	}
+	// b64enc := base64.NewEncoder(base64.StdEncoding, encBuf)
+	gpgEnc, err := openpgp.Encrypt(encBuf, recipientPubKeys, nil, nil, nil)
+	gzEnc, _ := gzip.NewWriterLevel(gpgEnc, gzip.BestCompression)
 	if err != nil {
 		return data, err
 	}
-	io.Copy(gpgEnc, r)
+	io.Copy(gzEnc, r)
+	gzEnc.Close()
 	gpgEnc.Close()
-	b64enc.Close()
-	return encBuf.String(), nil
+	// b64enc.Close()
+	return encBuf, nil
 }
 
-func sign(r io.Reader, signer *openpgp.Entity) (string, error) {
+func sign(r io.Reader, signer *openpgp.Entity) ([]byte, error) {
 	sigBuf := new(bytes.Buffer)
-	b64enc := base64.NewEncoder(base64.StdEncoding, sigBuf)
-	err := openpgp.DetachSign(b64enc, signer, r, nil)
-	b64enc.Close()
+	// b64enc := base64.NewEncoder(base64.StdEncoding, sigBuf)
+	err := openpgp.DetachSign(sigBuf, signer, r, nil)
+	// b64enc.Close()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return sigBuf.String(), nil
+	return sigBuf.Bytes(), nil
 }
