@@ -2,10 +2,6 @@ package main
 
 import (
 	_ "crypto/sha256"
-	"fmt"
-	"os"
-
-	crypto "github.com/foursee/shellgameCrypto"
 
 	_ "golang.org/x/crypto/ripemd160"
 
@@ -21,27 +17,4 @@ var (
 )
 
 func main() {
-
-	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
-
-	// generate keys
-	case keyGenCmd.FullCommand():
-		generateKeys()
-	default:
-		kingpin.FatalUsage("Unknown command")
-	}
-}
-
-func generateKeys() {
-	privKey, pubKey, err := crypto.GenerateRSAKeyPair(2048)
-
-	if err != nil {
-		fmt.Printf("Error generating keys: %v", err)
-		return
-	}
-
-	fmt.Println("Private key:")
-	fmt.Printf("%v\r\n", string(privKey[:]))
-	fmt.Println("Public key:")
-	fmt.Printf("%v\r\n", string(pubKey[:]))
 }
