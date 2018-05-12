@@ -53,8 +53,6 @@ func EntityKeyIDs(entity *openpgp.Entity) (keys KeyIDs, err error) {
 func ReadRecipients(r io.Reader) (md *MessageMetadata, err error) {
 	var p packet.Packet
 
-	var symKeys []*packet.SymmetricKeyEncrypted
-
 	packets := packet.NewReader(r)
 	md = new(MessageMetadata)
 	md.IsEncrypted = true
@@ -68,7 +66,6 @@ ParsePackets:
 		case *packet.SymmetricKeyEncrypted:
 			// This packet contains the decryption key encrypted with a passphrase.
 			md.IsSymmetricallyEncrypted = true
-			symKeys = append(symKeys, p)
 		case *packet.EncryptedKey:
 			// This packet contains the decryption key encrypted to a public key.
 			md.EncryptedToKeyIds = append(md.EncryptedToKeyIds, strings.ToUpper(fmt.Sprintf("%x", p.KeyId)))

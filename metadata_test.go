@@ -30,7 +30,7 @@ func Test_ReadRecipients(t *testing.T) {
 		t.Errorf("Error decoding message: %v", err)
 	}
 
-	if md.IsEncrypted != true {
+	if !md.IsEncrypted {
 		t.Error("Should be encrypted, but wasn't")
 	}
 
