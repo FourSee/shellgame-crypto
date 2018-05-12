@@ -3,6 +3,7 @@ package shellgamecrypto
 import (
 	"bytes"
 	"crypto/rsa"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"strings"
@@ -37,13 +38,13 @@ func GenerateRSAKeyPair(bits int, name, comment, email string) (privKey string, 
 	if err != nil {
 		return
 	}
-	pubKey, err = key.Armor()
+	pubKey, err = armorPublic(key)
 
 	if err != nil {
 		return
 	}
 
-	privKey, err = key.ArmorPrivate(&config)
+	privKey, err = armorPrivate(key, &config)
 	if err != nil {
 		return
 	}
@@ -53,26 +54,18 @@ func GenerateRSAKeyPair(bits int, name, comment, email string) (privKey string, 
 
 func armorPublic(key *gpgeez.Key) (string, error) {
 	buf := new(bytes.Buffer)
-	armor, err := armor.Encode(buf, openpgp.PublicKeyType, nil)
-	if err != nil {
-		return "", err
-	}
-	key.Serialize(armor)
-	armor.Close()
-
+	encoder := base64.NewEncoder(base64.StdEncoding, buf)
+	key.Serialize(encoder)
+	encoder.Close()
 	return buf.String(), nil
 }
 
 func armorPrivate(key *gpgeez.Key, config *gpgeez.Config) (string, error) {
 	buf := new(bytes.Buffer)
-	armor, err := armor.Encode(buf, openpgp.PrivateKeyType, nil)
-	if err != nil {
-		return "", err
-	}
+	encoder := base64.NewEncoder(base64.StdEncoding, buf)
 	c := config.Config
-	key.SerializePrivate(armor, &c)
-	armor.Close()
-
+	key.SerializePrivate(encoder, &c)
+	encoder.Close()
 	return buf.String(), nil
 }
 

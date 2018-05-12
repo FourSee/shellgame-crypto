@@ -2,42 +2,43 @@ package shellgamecrypto
 
 import (
 	"bytes"
+	"encoding/base64"
 	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
 
 	"golang.org/x/crypto/openpgp"
-	"golang.org/x/crypto/openpgp/armor"
 )
 
 func Benchmark_DecodePublicKey(b *testing.B) {
-	fileContents, _ := ioutil.ReadFile("./test_pub_key.asc")
+	fileContents, _ := ioutil.ReadFile("./test_pub_key.b64")
 
 	for n := 0; n < b.N; n++ {
 		r := bytes.NewReader(fileContents)
-		block, _ := armor.Decode(r)
-		DecodePublicKey(block.Body)
+		decoder := base64.NewDecoder(base64.StdEncoding, r)
+		DecodePublicKey(decoder)
 	}
 }
 
 func Test_DecodePublicKey(t *testing.T) {
-	r, _ := os.Open("./test_pub_key.asc")
+	r, _ := os.Open("./test_pub_key.b64")
 	defer r.Close()
-	block, _ := armor.Decode(r)
+	decoder := base64.NewDecoder(base64.StdEncoding, r)
+	// block, _ := armor.Decode(r)
 
-	md, err := DecodePublicKey(block.Body)
+	md, err := DecodePublicKey(decoder)
 
 	if err != nil {
 		t.Errorf("Error decoding message: %v", err)
 	}
 
-	expectedPrimaryKeyID := "2604AFED5E51266C"
+	expectedPrimaryKeyID := "E35BD19357C4033E"
 	if md.PrimaryKeyID != expectedPrimaryKeyID {
 		t.Errorf("Was expecting User ID %v, got %v", expectedPrimaryKeyID, md.PrimaryKeyID)
 	}
 
-	expectedKeys := []string{"F6B4A2643CD1CF0C"}
+	expectedKeys := []string{"6A7383DC331DA728"}
 	if !reflect.DeepEqual(md.SubKeyIDs, expectedKeys) {
 		t.Errorf("Expected Subkey IDs: %v, got: %v", expectedKeys, md.SubKeyIDs)
 	}
@@ -58,13 +59,15 @@ func Test_GenerateKey(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error generating a 2048-bit RSA key, got: %v", err)
 	}
-
-	_, err = openpgp.ReadArmoredKeyRing(bytes.NewBuffer([]byte(pubKey)))
+	pubDecoder := base64.NewDecoder(base64.StdEncoding, bytes.NewBuffer([]byte(pubKey)))
+	_, err = openpgp.ReadKeyRing(pubDecoder)
+	// _, err = openpgp.pubDecoder()
 	if err != nil {
 		t.Errorf("Problem with public key: %v", err)
 	}
 
-	_, err = openpgp.ReadArmoredKeyRing(bytes.NewBuffer([]byte(privKey)))
+	privDecoder := base64.NewDecoder(base64.StdEncoding, bytes.NewBuffer([]byte(privKey)))
+	_, err = openpgp.ReadKeyRing(privDecoder)
 	if err != nil {
 		t.Errorf("Problem with private key: %v", err)
 	}

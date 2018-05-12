@@ -2,12 +2,11 @@ package shellgamecrypto
 
 import (
 	"bytes"
+	"encoding/base64"
 	"io"
 	"strings"
 
 	"golang.org/x/crypto/openpgp"
-
-	"golang.org/x/crypto/openpgp/armor"
 )
 
 // EncryptAndSign Takes an IO stream, recipient public keys, and a non-passworded signing private key,
@@ -30,26 +29,26 @@ func EncryptAndSign(r io.Reader, recipientPubKeys openpgp.EntityList, signingPri
 
 func encrypt(r io.Reader, recipientPubKeys []*openpgp.Entity) (data string, err error) {
 	encBuf := new(bytes.Buffer)
-	msg, err := armor.Encode(encBuf, "PGP MESSAGE", nil)
+
+	b64enc := base64.NewEncoder(base64.StdEncoding, encBuf)
+	// bzEnc :=
+	gpgEnc, err := openpgp.Encrypt(b64enc, recipientPubKeys, nil, nil, nil)
 	if err != nil {
 		return data, err
 	}
-	gpg, err := openpgp.Encrypt(msg, recipientPubKeys, nil, nil, nil)
-	if err != nil {
-		return data, err
-	}
-	io.Copy(gpg, r)
-	gpg.Close()
-	msg.Close()
+	io.Copy(gpgEnc, r)
+	gpgEnc.Close()
+	b64enc.Close()
 	return encBuf.String(), nil
 }
 
 func sign(r io.Reader, signer *openpgp.Entity) (string, error) {
 	sigBuf := new(bytes.Buffer)
-	err := openpgp.ArmoredDetachSignText(sigBuf, signer, r, nil)
+	b64enc := base64.NewEncoder(base64.StdEncoding, sigBuf)
+	err := openpgp.DetachSign(b64enc, signer, r, nil)
+	b64enc.Close()
 	if err != nil {
 		return "", err
 	}
-
 	return sigBuf.String(), nil
 }

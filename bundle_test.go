@@ -2,24 +2,28 @@ package shellgamecrypto
 
 import (
 	"bytes"
+	"encoding/base64"
+	"fmt"
 	"os"
 	"reflect"
 	"strings"
 	"testing"
 
 	"golang.org/x/crypto/openpgp"
-	"golang.org/x/crypto/openpgp/armor"
 )
 
 func Test_EncryptAndSign(t *testing.T) {
-	pubkeyIn, err := os.Open("./test_pub_key.asc")
-	privkeyIn, _ := os.Open("./test_priv_key.asc")
+	pubkeyIn, err := os.Open("./test_pub_key.b64")
+	privkeyIn, _ := os.Open("./test_priv_key.b64")
 
-	pubkeys, err := openpgp.ReadArmoredKeyRing(pubkeyIn)
+	pubDecoder := base64.NewDecoder(base64.StdEncoding, pubkeyIn)
+	privDecoder := base64.NewDecoder(base64.StdEncoding, privkeyIn)
+
+	pubkeys, err := openpgp.ReadKeyRing(pubDecoder)
 	if err != nil {
 		t.Errorf("Problem with pubkey: %v", err)
 	}
-	privkey, err := openpgp.ReadArmoredKeyRing(privkeyIn)
+	privkey, err := openpgp.ReadKeyRing(privDecoder)
 	if err != nil {
 		t.Errorf("Problem with privkey: %v", err)
 	}
@@ -31,7 +35,12 @@ func Test_EncryptAndSign(t *testing.T) {
 		t.Errorf("Problem with encryption: %v", err)
 	}
 
-	entity, err := openpgp.CheckArmoredDetachedSignature(pubkeys, strings.NewReader(data), strings.NewReader(signature))
+	fmt.Println("Encrypted data:")
+	fmt.Println(data)
+	fmt.Println("Signature:")
+	fmt.Println(signature)
+
+	entity, err := openpgp.CheckDetachedSignature(pubkeys, strings.NewReader(data), base64.NewDecoder(base64.StdEncoding, strings.NewReader(signature)))
 	if err != nil {
 		t.Errorf("Check Detached Signature: %v", err)
 	}
@@ -41,19 +50,18 @@ func Test_EncryptAndSign(t *testing.T) {
 		t.Errorf("Error extracting key IDs from signature: %v", err)
 	}
 
-	expectedPrimaryKey := "2604AFED5E51266C"
+	expectedPrimaryKey := "E35BD19357C4033E"
 
 	if keyIDs.PrimaryKeyID != expectedPrimaryKey {
 		t.Errorf("Primary key mismatch. Expected: [%v] Got: [%v]", expectedPrimaryKey, keyIDs.PrimaryKeyID)
 	}
 
-	expectedSubKeys := []string{"F6B4A2643CD1CF0C"}
+	expectedSubKeys := []string{"6A7383DC331DA728"}
 	if !reflect.DeepEqual(keyIDs.SubKeyIDs, expectedSubKeys) {
 		t.Errorf("Subkeys mismatch. Expected: [%v] Got: [%v]", expectedSubKeys, keyIDs.SubKeyIDs)
 	}
 
-	signedArmor, _ := armor.Decode(strings.NewReader(signature))
-	signerID, err := ReadSigner(signedArmor.Body)
+	signerID, err := ReadSigner(base64.NewDecoder(base64.StdEncoding, strings.NewReader(signature)))
 	if err != nil {
 		t.Errorf("Error extracting key ID from signature: %v", err)
 	}
