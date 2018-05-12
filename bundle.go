@@ -24,6 +24,7 @@ func EncryptAndSign(r io.Reader, recipientPubKeys openpgp.EntityList, signingPri
 		return "", "", err
 	}
 	defer dataReader.Close()
+	defer os.Remove(dataReader.Name())
 	dataReader.Seek(0, 0)
 
 	signBytes, err := sign(dataReader, signingPrivKey)

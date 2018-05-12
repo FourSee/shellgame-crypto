@@ -1,5 +1,8 @@
 language: go
 
+install:
+  - dep ensure
+
 go:
   - "1.10.x"
   
