@@ -29,4 +29,6 @@ go:
   - "1.10.2"
   
 script:
+  - megacheck $PKGS
+  - go test -v -covermode=count -coverprofile=profile.cov $PKGS
   - goveralls -coverprofile=profile.cov -service=travis-ci
