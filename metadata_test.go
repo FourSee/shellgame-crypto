@@ -3,7 +3,6 @@ package shellgamecrypto
 import (
 	"bytes"
 	"encoding/base64"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -46,11 +45,9 @@ func Test_ReadSigner(t *testing.T) {
 	block := base64.NewDecoder(base64.StdEncoding, r)
 	defer r.Close()
 
-	md, err := ReadSigner(block)
+	_, err := ReadSigner(block)
 
 	if err != nil {
 		t.Errorf("Error decoding signature: %v", err)
 	}
-
-	fmt.Println(md)
 }

@@ -2,15 +2,12 @@ package shellgamecrypto
 
 import (
 	"bytes"
-	"crypto/rsa"
 	"encoding/base64"
 	"fmt"
 	"io"
 	"strings"
 	"time"
 
-	"golang.org/x/crypto/openpgp"
-	"golang.org/x/crypto/openpgp/armor"
 	"golang.org/x/crypto/openpgp/packet"
 
 	"github.com/alokmenghrajani/gpgeez"
@@ -102,26 +99,26 @@ ParsePackets:
 	return key, err
 }
 
-func encodePrivateKey(out io.Writer, key *rsa.PrivateKey) (err error) {
-	w, err := armor.Encode(out, openpgp.PrivateKeyType, make(map[string]string))
-	if err != nil {
-		return err
-	}
+// func encodePrivateKey(out io.Writer, key *rsa.PrivateKey) (err error) {
+// 	w, err := armor.Encode(out, openpgp.PrivateKeyType, make(map[string]string))
+// 	if err != nil {
+// 		return err
+// 	}
 
-	defer w.Close()
-	pgpKey := packet.NewRSAPrivateKey(time.Now(), key)
-	pgpKey.Serialize(w)
-	return nil
-}
+// 	defer w.Close()
+// 	pgpKey := packet.NewRSAPrivateKey(time.Now(), key)
+// 	pgpKey.Serialize(w)
+// 	return nil
+// }
 
-func encodePublicKey(out io.Writer, key *rsa.PrivateKey) (err error) {
-	w, err := armor.Encode(out, openpgp.PublicKeyType, make(map[string]string))
-	if err != nil {
-		return err
-	}
+// func encodePublicKey(out io.Writer, key *rsa.PrivateKey) (err error) {
+// 	w, err := armor.Encode(out, openpgp.PublicKeyType, make(map[string]string))
+// 	if err != nil {
+// 		return err
+// 	}
 
-	defer w.Close()
-	pgpKey := packet.NewRSAPublicKey(time.Now(), &key.PublicKey)
-	pgpKey.Serialize(w)
-	return nil
-}
+// 	defer w.Close()
+// 	pgpKey := packet.NewRSAPublicKey(time.Now(), &key.PublicKey)
+// 	pgpKey.Serialize(w)
+// 	return nil
+// }
