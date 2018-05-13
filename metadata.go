@@ -58,7 +58,7 @@ func ReadRecipients(r io.Reader) (md *MessageMetadata, err error) {
 	md.IsEncrypted = true
 ParsePackets:
 	for {
-		p, _ = packets.Next()
+		p, err = packets.Next()
 		if err != nil {
 			return md, err
 		}
