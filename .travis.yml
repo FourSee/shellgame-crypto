@@ -21,6 +21,7 @@ before_install:
   # Install linters
   - go get -u honnef.co/go/tools/cmd/megacheck
   - go get -u honnef.co/go/tools/cmd/unused
+  - go get -u github.com/mattn/goveralls
 
 install:
   - dep ensure
@@ -37,6 +38,8 @@ script:
   - megacheck $PKGS
   - unused $PKGS
   - go test -v -coverprofile c.out $PKGS
+  - $GOPATH/bin/goveralls -service=travis-ci
+  - make bench
 
 after_script:
   - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
