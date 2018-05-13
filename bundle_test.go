@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/base64"
+	"fmt"
 	"os"
 	"reflect"
 	"strings"
@@ -32,6 +33,11 @@ func Test_EncryptAndSign(t *testing.T) {
 	if err != nil {
 		t.Errorf("Problem with encryption: %v", err)
 	}
+
+	fmt.Println("Payload:")
+	fmt.Println(data)
+	fmt.Println("Signature:")
+	fmt.Println(signature)
 
 	senderPubkeyIn, _ := os.Open("./test_keys/sender_pub_key.b64")
 

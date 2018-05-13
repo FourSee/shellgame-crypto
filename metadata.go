@@ -34,9 +34,9 @@ type MessageMetadata struct {
 
 // KeyIDs is the public key metadata container
 type KeyIDs struct {
-	PrimaryKeyID string
-	SubKeyIDs    []string
-	UserID       packet.UserId
+	PrimaryKeyID string        `json:"primary_key_id"`
+	SubKeyIDs    []string      `json:"subkey_ids"`
+	UserID       packet.UserId `json:"user_id"`
 }
 
 // EntityKeyIDs extracts the key IDs from a given entity
