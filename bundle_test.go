@@ -13,31 +13,34 @@ import (
 )
 
 func Test_EncryptAndSign(t *testing.T) {
-	pubkeyIn, _ := os.Open("./test_pub_key.b64")
-	privkeyIn, _ := os.Open("./test_priv_key.b64")
-
 	plaintextMessage := "Hello, world. This is a test message"
+	recipientPubkeyIn, _ := os.Open("./test_keys/recipient_pub_key.b64")
+	senderPrivKeyIn, _ := os.Open("./test_keys/sender_priv_key.b64")
 
-	pubDecoder := base64.NewDecoder(base64.StdEncoding, pubkeyIn)
-	privDecoder := base64.NewDecoder(base64.StdEncoding, privkeyIn)
-
-	pubkeys, err := openpgp.ReadKeyRing(pubDecoder)
+	recipPubkeys, err := openpgp.ReadKeyRing(base64.NewDecoder(base64.StdEncoding, recipientPubkeyIn))
 	if err != nil {
 		t.Errorf("Problem with pubkey: %v", err)
 	}
-	privkey, err := openpgp.ReadKeyRing(privDecoder)
+	senderPrivkey, err := openpgp.ReadKeyRing(base64.NewDecoder(base64.StdEncoding, senderPrivKeyIn))
 	if err != nil {
 		t.Errorf("Problem with privkey: %v", err)
 	}
 
 	testMessage := bytes.NewBuffer([]byte(plaintextMessage))
 
-	data, signature, err := EncryptAndSign(testMessage, pubkeys, privkey[0])
+	data, signature, err := EncryptAndSign(testMessage, recipPubkeys, senderPrivkey[0])
 	if err != nil {
 		t.Errorf("Problem with encryption: %v", err)
 	}
 
-	entity, err := openpgp.CheckDetachedSignature(pubkeys, base64.NewDecoder(base64.StdEncoding, strings.NewReader(data)), base64.NewDecoder(base64.StdEncoding, strings.NewReader(signature)))
+	senderPubkeyIn, _ := os.Open("./test_keys/sender_pub_key.b64")
+
+	senderPubkeys, err := openpgp.ReadKeyRing(base64.NewDecoder(base64.StdEncoding, senderPubkeyIn))
+	if err != nil {
+		t.Errorf("Problem with pubkey: %v", err)
+	}
+
+	entity, err := openpgp.CheckDetachedSignature(senderPubkeys, base64.NewDecoder(base64.StdEncoding, strings.NewReader(data)), base64.NewDecoder(base64.StdEncoding, strings.NewReader(signature)))
 	if err != nil {
 		t.Errorf("Check Detached Signature: %v", err)
 	}
@@ -67,8 +70,15 @@ func Test_EncryptAndSign(t *testing.T) {
 		t.Errorf("Signer ID mismatch. Expected: [%v] Got: [%v]", expectedPrimaryKey, signerID)
 	}
 
+	recipPrivKeyIn, _ := os.Open("./test_keys/recipient_priv_key.b64")
+
+	recipPrivkey, err := openpgp.ReadKeyRing(base64.NewDecoder(base64.StdEncoding, recipPrivKeyIn))
+	if err != nil {
+		t.Errorf("Problem with pubkey: %v", err)
+	}
+
 	b64 := base64.NewDecoder(base64.StdEncoding, strings.NewReader(data))
-	md, err := openpgp.ReadMessage(b64, privkey, nil, nil)
+	md, err := openpgp.ReadMessage(b64, recipPrivkey, nil, nil)
 	if err != nil {
 		t.Errorf("Error decrypting message: %v", err)
 	}

@@ -22,7 +22,8 @@ func Benchmark_DecodePublicKey(b *testing.B) {
 }
 
 func Test_DecodePublicKey(t *testing.T) {
-	r, _ := os.Open("./test_pub_key.b64")
+	r, _ := os.Open("./test_keys/sender_pub_key.b64")
+
 	defer r.Close()
 	decoder := base64.NewDecoder(base64.StdEncoding, r)
 
