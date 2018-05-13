@@ -38,7 +38,7 @@ script:
   - megacheck $PKGS
   - unused $PKGS
   - go test -v -coverprofile c.out $PKGS
-  - $GOPATH/bin/goveralls -service=travis-ci
+  - goveralls -coverprofile=c.out -service=travis-ci
   - make bench
 
 after_script:
